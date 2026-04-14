@@ -28,9 +28,24 @@ The project uses an Oracle-based schema consisting of:
 * **Data Integrity:** Robust exception handling and history tracking for claims.
 
 ## 🚀 How to Use
-1. Execute the scripts in the `schema/` folder to build the tables.
-2. Load the testing data from the `data/` folder.
-3. Compile the PL/SQL objects in the `logic/` folder.
+
+Follow this execution order to set up the environment correctly:
+
+1. **Database Schema:** 
+   Run `schema/createTables.sql` to create the tables and constraints.
+2. **Seed Data:** 
+   Run `data/insertData.sql` to populate the tables with testing data.
+3. **Functions:** 
+   Run `functions/all_functions.sql` to compile the calculation logic.
+4. **Procedures:** 
+   Run `procedures/all_procedures.sql` to compile the business rules.
+5. **Triggers (Optional):** 
+   Run `triggers/all_triggers.sql` for automated audit rules.
+6. **Validation:** 
+   Use the scripts in `tests/01-criacao.sql` to verify the installation.
+   Use the scripts in `tests/02-execucao-testes.sql` to verify the installation.
+   Use the scripts in `tests/03-reversao.sql` to verify the installation.
+
 
 Tested on **Oracle Database / FreeSQL.com**.
 
