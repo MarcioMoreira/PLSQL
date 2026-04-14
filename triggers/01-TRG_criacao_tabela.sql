@@ -1,0 +1,4 @@
+CREATE TABLE logs (
+    id        NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    alteracao VARCHAR2(250)
+);

@@ -1,0 +1,426 @@
+CREATE OR REPLACE PROCEDURE PR_GERAR_MENSAGEM_ERRO (
+    P_CODIGO_ERRO   IN NUMBER,
+    P_MENSAGEM_ERRO IN VARCHAR2 DEFAULT 'Erro desconhecido'
+) IS
+BEGIN
+    RAISE_APPLICATION_ERROR(P_CODIGO_ERRO, P_MENSAGEM_ERRO);
+END;
+/
+
+SET SERVEROUTPUT ON;
+
+BEGIN
+    BEGIN
+        PR_GERAR_MENSAGEM_ERRO(-20001, 'Cliente não possui apólice ativa');
+    EXCEPTION
+        WHEN OTHERS THEN
+            DBMS_OUTPUT.PUT_LINE('Erro capturado: ' || SQLERRM);
+    END;
+END;
+/
+
+CREATE OR REPLACE PROCEDURE PR_VALIDAR_APOLICE (
+    P_ID_APOLICE IN NUMBER
+) IS
+    V_STATUS VARCHAR2(50);
+BEGIN
+ -- Chama a função que verifica o status da apólice
+    V_STATUS := FN_VERIFICAR_APOLICE_ATIVA(P_ID_APOLICE);
+ -- Validação da regra de negócio
+    IF V_STATUS <> 'APOLICE ATIVA' THEN
+        PR_GERAR_MENSAGEM_ERRO(-20001, 'Apólice inválida ou inativa');
+    END IF;
+END;
+/
+
+SET SERVEROUTPUT ON;
+
+BEGIN
+    BEGIN
+        PR_VALIDAR_APOLICE(101);
+        DBMS_OUTPUT.PUT_LINE('Apólice válida!');
+    EXCEPTION
+        WHEN OTHERS THEN
+            DBMS_OUTPUT.PUT_LINE('Erro: ' || SQLERRM);
+    END;
+END;
+/
+
+CREATE OR REPLACE PROCEDURE PR_VALIDAR_SINISTRO (
+    P_TIPO_SINISTRO IN VARCHAR2
+) IS
+    V_RESULTADO VARCHAR2(20);
+BEGIN
+ -- Verifica se o sinistro é coberto
+    V_RESULTADO := FN_SINISTRO_COBERTO(P_TIPO_SINISTRO);
+ -- Aplica regra de negócio
+    IF V_RESULTADO <> 'COBERTO' THEN
+        PR_GERAR_MENSAGEM_ERRO(-20002, 'Tipo de sinistro não coberto');
+    END IF;
+END;
+/
+
+SET SERVEROUTPUT ON;
+
+BEGIN
+    PR_VALIDAR_SINISTRO('Danos Morais');
+EXCEPTION
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('Erro: ' || SQLERRM);
+END;
+/
+
+CREATE OR REPLACE PROCEDURE PR_OBTER_DADOS_APOLICE (
+    P_ID_APOLICE     IN NUMBER,
+    P_VALOR_SEGURADO OUT NUMBER,
+    P_FRANQUIA       OUT NUMBER
+) IS
+BEGIN
+    SELECT
+        VALOR_SEGURADO,
+        FRANQUIA
+    INTO
+        P_VALOR_SEGURADO,
+        P_FRANQUIA
+    FROM
+        APOLICES
+    WHERE
+        ID_APOLICE = P_ID_APOLICE;
+
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        PR_GERAR_MENSAGEM_ERRO(-20003, 'Apólice não encontrada');
+END;
+/
+
+SET SERVEROUTPUT ON;
+
+DECLARE
+    V_VALOR_SEGURADO NUMBER;
+    V_FRANQUIA       NUMBER;
+BEGIN
+    PR_OBTER_DADOS_APOLICE(2, V_VALOR_SEGURADO, V_FRANQUIA);
+    DBMS_OUTPUT.PUT_LINE('Valor segurado: ' || V_VALOR_SEGURADO);
+    DBMS_OUTPUT.PUT_LINE('Franquia: ' || V_FRANQUIA);
+EXCEPTION
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('Erro: ' || SQLERRM);
+END;
+/
+
+CREATE OR REPLACE PROCEDURE PR_OBTER_HISTORICO_CLIENTE (
+    P_ID_CLIENTE           IN NUMBER,
+    P_QUANTIDADE_SINISTROS OUT NUMBER
+) IS
+BEGIN
+    SELECT
+        QUANTIDADE_SINISTROS
+    INTO P_QUANTIDADE_SINISTROS
+    FROM
+        HISTORICO_SINISTROS
+    WHERE
+        ID_HISTORICO = P_ID_CLIENTE;
+
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        PR_GERAR_MENSAGEM_ERRO(-20004, 'Histórico do cliente não encontrado');
+END;
+/
+
+SET SERVEROUTPUT ON;
+
+DECLARE
+    V_QTD_SINISTROS NUMBER;
+BEGIN
+    PR_OBTER_HISTORICO_CLIENTE(999, V_QTD_SINISTROS);
+    DBMS_OUTPUT.PUT_LINE('Quantidade de sinistros: ' || V_QTD_SINISTROS);
+EXCEPTION
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('Erro: ' || SQLERRM);
+END;
+/
+
+CREATE OR REPLACE PROCEDURE PR_CALCULAR_VALOR_FINAL (
+    P_ID_SINISTRO IN NUMBER,
+    P_VALOR_FINAL OUT NUMBER
+) IS
+    V_ID_APOLICE     NUMBER;
+    V_VALOR_ESTIMADO NUMBER;
+    V_VALOR_SEGURADO NUMBER;
+    V_FRANQUIA       NUMBER;
+    V_QTD_SINISTROS  NUMBER;
+    V_ID_CLIENTE     NUMBER;
+BEGIN
+ -- Obtém dados do sinistro
+    BEGIN
+        SELECT
+            ID_APOLICE,
+            VALOR_ESTIMADO
+        INTO
+            V_ID_APOLICE,
+            V_VALOR_ESTIMADO
+        FROM
+            SINISTROS
+        WHERE
+            ID_SINISTRO = P_ID_SINISTRO;
+
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            PR_GERAR_MENSAGEM_ERRO(-20005, 'Sinistro não encontrado');
+    END;
+ -- Valida apólice
+    PR_VALIDAR_APOLICE(V_ID_APOLICE);
+ -- Obtém dados da apólice
+    PR_OBTER_DADOS_APOLICE(V_ID_APOLICE, V_VALOR_SEGURADO, V_FRANQUIA);
+ -- Obtém id do cliente da apólice
+    SELECT
+        ID_CLIENTE
+    INTO V_ID_CLIENTE
+    FROM
+        APOLICES
+    WHERE
+        ID_APOLICE = V_ID_APOLICE;
+ -- Obtém histórico do cliente
+    PR_OBTER_HISTORICO_CLIENTE(V_ID_CLIENTE, V_QTD_SINISTROS);
+ -- Calcula valor final
+    P_VALOR_FINAL := FN_CALCULAR_INDENIZACAO(V_VALOR_ESTIMADO, V_FRANQUIA);
+END;
+/
+
+SET SERVEROUTPUT ON;
+
+DECLARE
+    V_VALOR_FINAL NUMBER;
+BEGIN
+    PR_CALCULAR_VALOR_FINAL(999, V_VALOR_FINAL);
+    DBMS_OUTPUT.PUT_LINE('Valor final da indenização: ' || V_VALOR_FINAL);
+EXCEPTION
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('Erro: ' || SQLERRM);
+END;
+/
+
+CREATE OR REPLACE PROCEDURE PR_ATUALIZAR_STATUS_SINISTRO (
+    P_ID_SINISTRO IN NUMBER,
+    P_NOVO_STATUS IN VARCHAR2
+) IS
+BEGIN
+ -- Atualiza o status do sinistro
+    UPDATE SINISTROS
+    SET
+        STATUS = P_NOVO_STATUS
+    WHERE
+        ID_SINISTRO = P_ID_SINISTRO;
+ -- Se nenhum registro foi atualizado, significa que o sinistro não existe
+    IF SQL%ROWCOUNT = 0 THEN
+        PR_GERAR_MENSAGEM_ERRO(-20006, 'Sinistro não encontrado para
+atualização');
+    END IF;
+END;
+/
+
+SET SERVEROUTPUT ON;
+
+BEGIN
+    PR_ATUALIZAR_STATUS_SINISTRO(4, 'aprovado');
+ DBMS_OUTPUT.PUT_LINE('Status do sinistro atualizado com sucesso.');
+EXCEPTION
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('Erro: ' || SQLERRM);
+END;
+/
+
+SELECT * FROM SINISTROS WHERE ID_SINISTRO=4;
+
+CREATE OR REPLACE PROCEDURE PR_REGISTRAR_PAGAMENTO (
+    P_ID_SINISTRO    IN NUMBER,
+    P_VALOR_PAGO     IN NUMBER,
+    P_DATA_PAGAMENTO IN DATE DEFAULT SYSDATE
+) IS
+    V_ID_SINISTRO_TMP NUMBER;
+    V_NOVO_ID         NUMBER;
+BEGIN
+ -- Verifica se o sinistro existe
+    BEGIN
+        SELECT
+            ID_SINISTRO
+        INTO V_ID_SINISTRO_TMP
+        FROM
+            SINISTROS
+        WHERE
+            ID_SINISTRO = P_ID_SINISTRO;
+
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            PR_GERAR_MENSAGEM_ERRO(-20005, 'Sinistro não encontrado');
+    END;
+ -- Gera o próximo id_pagamento manualmente
+    SELECT
+        NVL(
+            MAX(ID_PAGAMENTO),
+            0
+        ) + 1
+    INTO V_NOVO_ID
+    FROM
+        PAGAMENTOS;
+ -- Insere o pagamento
+    INSERT INTO PAGAMENTOS (
+        ID_PAGAMENTO,
+        ID_SINISTRO,
+        VALOR_PAGO,
+        DATA_PAGAMENTO
+    ) VALUES ( V_NOVO_ID,
+               P_ID_SINISTRO,
+               P_VALOR_PAGO,
+               P_DATA_PAGAMENTO );
+ -- Atualiza o status do sinistro para 'pago'
+    PR_ATUALIZAR_STATUS_SINISTRO(P_ID_SINISTRO, 'pago');
+END;
+/
+
+SET SERVEROUTPUT ON;
+
+BEGIN
+    PR_REGISTRAR_PAGAMENTO(1, 42000);
+    DBMS_OUTPUT.PUT_LINE('Pagamento registrado com sucesso.');
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('Erro: ' || SQLERRM);
+END;
+/
+
+SELECT * FROM SINISTROS;
+
+CREATE OR REPLACE PROCEDURE PR_ATUALIZAR_HISTORICO_CLIENTE (
+    P_ID_CLIENTE IN NUMBER
+) IS
+    V_QTDE NUMBER;
+BEGIN
+ -- Verifica se já existe registro no histórico
+    BEGIN
+        SELECT
+            QUANTIDADE_SINISTROS
+        INTO V_QTDE
+        FROM
+            HISTORICO_SINISTROS
+        WHERE
+            ID_CLIENTE = P_ID_CLIENTE;
+
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+ -- Se não houver registro, insere novo
+            INSERT INTO HISTORICO_SINISTROS (
+                ID_CLIENTE,
+                QUANTIDADE_SINISTROS
+            ) VALUES ( P_ID_CLIENTE,
+                       1 );
+
+            DBMS_OUTPUT.PUT_LINE('Histórico criado para o cliente.');
+            RETURN;
+    END;
+ -- Se já existir registro, incrementa a quantidade
+    UPDATE HISTORICO_SINISTROS
+    SET
+        QUANTIDADE_SINISTROS = QUANTIDADE_SINISTROS + 1
+    WHERE
+        ID_CLIENTE = P_ID_CLIENTE;
+
+    DBMS_OUTPUT.PUT_LINE('Histórico atualizado com sucesso.');
+EXCEPTION
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('Erro: ' || SQLERRM);
+END;
+/
+
+SET SERVEROUTPUT ON;
+
+BEGIN
+    PR_ATUALIZAR_HISTORICO_CLIENTE(1);
+EXCEPTION
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('Erro ao atualizar histórico: ' || SQLERRM);
+END;
+/
+
+SELECT * FROM HISTORICO_SINISTROS;
+
+SELECT * FROM CLIENTES;
+
+CREATE OR REPLACE PROCEDURE PR_ANALISAR_SINISTRO (
+    P_ID_SINISTRO IN NUMBER,
+    P_VALOR_FINAL OUT NUMBER,
+    P_STATUS      OUT VARCHAR2
+) IS
+    V_ID_APOLICE     NUMBER;
+    V_ID_CLIENTE     NUMBER;
+    V_VALOR_SEGURADO NUMBER;
+    V_FRANQUIA       NUMBER;
+    V_QTDE_SINISTROS NUMBER;
+BEGIN
+ -- Obtém id_apolice do sinistro
+    SELECT
+        ID_APOLICE
+    INTO V_ID_APOLICE
+    FROM
+        SINISTROS
+    WHERE
+        ID_SINISTRO = P_ID_SINISTRO;
+ -- Obtém id_cliente da apólice
+    SELECT
+        ID_CLIENTE
+    INTO V_ID_CLIENTE
+    FROM
+        APOLICES
+    WHERE
+        ID_APOLICE = V_ID_APOLICE;
+ -- Valida apólice
+    PR_VALIDAR_APOLICE(V_ID_APOLICE);
+ -- Obtém dados da apólice (valor_segurado e franquia)
+    PR_OBTER_DADOS_APOLICE(V_ID_APOLICE, V_VALOR_SEGURADO, V_FRANQUIA);
+ -- Obtém histórico do cliente
+    PR_OBTER_HISTORICO_CLIENTE(V_ID_CLIENTE, V_QTDE_SINISTROS);
+ -- Calcula valor final do sinistro
+    PR_CALCULAR_VALOR_FINAL(P_ID_SINISTRO, P_VALOR_FINAL);
+ -- Define status do sinistro
+    IF P_VALOR_FINAL > 0 THEN
+        P_STATUS := 'aprovado';
+    ELSE
+        P_STATUS := 'recusado';
+    END IF;
+ -- Atualiza status do sinistro
+    PR_ATUALIZAR_STATUS_SINISTRO(P_ID_SINISTRO, P_STATUS);
+ -- Se aprovado, registra pagamento (ajustado para 3 parâmetros)
+    IF P_STATUS = 'aprovado' THEN
+        PR_REGISTRAR_PAGAMENTO(
+            P_ID_SINISTRO    => P_ID_SINISTRO,
+            P_VALOR_PAGO     => P_VALOR_FINAL,
+            P_DATA_PAGAMENTO => SYSDATE
+        );
+    END IF;
+ -- Atualiza histórico do cliente
+    PR_ATUALIZAR_HISTORICO_CLIENTE(V_ID_CLIENTE);
+EXCEPTION
+    WHEN OTHERS THEN
+        PR_GERAR_MENSAGEM_ERRO(-20010, 'Erro ao analisar sinistro: ' || SQLERRM);
+END;
+/
+
+SET SERVEROUTPUT ON;
+
+DECLARE
+    V_VALOR  NUMBER;
+    V_STATUS VARCHAR2(20);
+BEGIN
+    PR_ANALISAR_SINISTRO(302, V_VALOR, V_STATUS); -- sinistro 101
+    DBMS_OUTPUT.PUT_LINE('Sinistro analisado.');
+    DBMS_OUTPUT.PUT_LINE('Status: '
+                         || V_STATUS
+                         || ', Valor Final: ' || V_VALOR);
+EXCEPTION
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('Erro: ' || SQLERRM);
+END;
+/
+
+SET SERVEROUTPUT ON;
