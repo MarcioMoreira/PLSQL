@@ -48,4 +48,3 @@ Follow this execution order to set up the environment correctly:
    * `tests/03-reversao.sql`: Cleans up test data (Rollback).
 
 Tested on **Oracle Database / FreeSQL.com**.
-
