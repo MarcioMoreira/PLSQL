@@ -11,7 +11,7 @@ The project is organized to facilitate deployment and maintenance:
 * **`/data`**: DML scripts with seed data for testing environments.
 * **`/logic`**: Procedural code including Functions and Procedures for business rules.
 
-* ## 🏛️ Database Schema
+## 🏛️ Database Schema
 The project uses an Oracle-based schema consisting of:
 * **CLIENTES:** Master record for policyholders.
 * **APOLICES:** Insurance policy details and coverage values.
