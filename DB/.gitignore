@@ -1,0 +1,15 @@
+# Logs e ficheiros temporários de execução
+*.log
+*.tmp
+*.bak
+
+# Pasta de configurações do VS Code
+.vscode/
+
+# Configurações de ferramentas de DB (SQL Developer, DBeaver)
+.idea/
+*.dbeaver-data-sources.xml
+.dbeaver/
+
+# Ficheiros do sistema (macOS)
+.DS_Store
