@@ -42,10 +42,10 @@ Follow this execution order to set up the environment correctly:
 5. **Triggers (Optional):** 
    Run `triggers/all_triggers.sql` for automated audit rules.
 6. **Validation:** 
-   Use the scripts in `tests/01-criacao.sql` to verify the installation.
-   Use the scripts in `tests/02-execucao-testes.sql` to verify the installation.
-   Use the scripts in `tests/03-reversao.sql` to verify the installation.
-
+   Execute the validation suite in order:
+   * `tests/01-criacao.sql`: Prepares the test environment.
+   * `tests/02-execucao-testes.sql`: Runs the main business logic tests.
+   * `tests/03-reversao.sql`: Cleans up test data (Rollback).
 
 Tested on **Oracle Database / FreeSQL.com**.
 
