@@ -9,7 +9,10 @@ This repository contains the backend logic and database architecture for a compr
 The project is organized to facilitate deployment and maintenance:
 * **`/schema`**: DDL scripts for table structures (Clients, Policies, Claims).
 * **`/data`**: DML scripts with seed data for testing environments.
-* **`/logic`**: Procedural code including Functions and Procedures for business rules.
+* **`/functions`**: Reusable logic for calculations (deductibles, limits).
+* **`/procedures`**: Business processes (validations, claim processing).
+* **`/triggers`**: Automation and auditing rules.
+* **`/tests`**: Manual test blocks (DECLARE/BEGIN/END) for validation.
 
 ## 🏛️ Database Schema
 The project uses an Oracle-based schema consisting of:
