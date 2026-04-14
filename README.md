@@ -50,6 +50,6 @@ To deploy any project from this collection, follow this execution order:
 ---
 
 ## 🛠️ Tech Stack & Requirements
-*   **Database:** Oracle Database (Compatible with 12c, 19c, 21c)
+*   **Database:** Oracle Database (Compatible with 12c, 19c, 21c, 23ai)
 *   **Tooling:** Tested on [FreeSQL.com](https://freesql.com) and Oracle SQL Developer.
 *   **Standard:** ANSI SQL & PL/SQL.
