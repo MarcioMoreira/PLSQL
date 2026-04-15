@@ -1,6 +1,6 @@
-/************************************************************
- * 1. QUERIES EXERCISES
- ************************************************************/
+/***************************************************************************
+ *                       1. QUERIES EXERCISES  *                           *
+ ***************************************************************************/
 
 
 -- 1 - Nomes dos clientes cujo ID 
@@ -18,7 +18,6 @@ WHERE id_cliente NOT IN (
 
 -- 2 - Saber quais as apólices que já geraram dinheiro (pagamentos), 
 -- mas que ainda não deram despesa (sinistros).
-
 SELECT id_apolice FROM pagamentos
 MINUS
 SELECT id_apolice FROM sinistros; -- dá vazio
@@ -45,7 +44,7 @@ WHERE premio_anual > (
 ORDER BY premio_anual;
 
 
--- 4 -Queremos os nomes dos clientes que têm pelo menos um pagamento 
+-- 4 - Nomes dos clientes que têm pelo menos um pagamento 
 -- registado na tabela pagamentos.
 SELECT nome ,id_cliente
 FROM CLIENTES
@@ -72,7 +71,7 @@ WHERE PREMIO_ANUAL < (
 );
 
 
--- 6 -Listar o nome e o nif da tabela clientes apenas para aqueles que 
+-- 6 - Listar o nome e o nif da tabela clientes apenas para aqueles que 
 -- aparecem mais de uma vez na tabela apolices.
 SELECT c.nome, c.nif
 FROM CLIENTES c
@@ -138,7 +137,7 @@ LEFT JOIN apolices a ON c.id_cliente = a.id_cliente
 LEFT JOIN sinistros s ON a.id_apolice = s.id_apolice;
 
 
--- 12 - Lista o Nome do Cliente e o Valor Pago (da tabela pagamentos).
+-- 12 - Listar o Nome do Cliente e o Valor Pago (da tabela pagamentos).
 SELECT c.nome, a.tipo, NVL(p.valor_pago, 0) as valor_pago
 FROM clientes c
 LEFT JOIN apolices a ON c.id_cliente = a.id_cliente
